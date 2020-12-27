@@ -12,7 +12,9 @@ export class Game {
     private _sharkMesh: BABYLON.AbstractMesh;
     private _sharkAnimationTime = 0;
     private _swim: boolean = false;
-    private _txtCoordinates: { txtX: GUI.TextBlock, txtY: GUI.TextBlock, txtZ: GUI.TextBlock } = null;
+    private _numViewDirections:number= 300;
+    private _directions:Array<BABYLON.Vector3> = [];
+   
 
     constructor(canvasElement: string) {
         // Create canvas and engine
@@ -59,6 +61,22 @@ export class Game {
         });
     }
 
+     
+    computeBlocsPositionOnSphere = ()=>{
     
+        let goldenRatio:number = (1 + Math.sqrt(5)) / 2;
+        let angleIncrement: number = Math.PI * 2 * goldenRatio;
+    
+        for (let i = 0; i < this._numViewDirections; i++) {
+            let t = i / this._numViewDirections;
+            let inclination = Math.acos (1 - 2 * t);
+            let azimuth = angleIncrement * i;
+
+            let x = Math.sin (inclination) * Math.cos (azimuth);
+            let y = Math.sin (inclination) * Math.sin (azimuth);
+            let z = Math.cos (inclination);
+            this._directions[i] = new BABYLON.Vector3 (x, y, z);
+        }
+    }
 
 }
