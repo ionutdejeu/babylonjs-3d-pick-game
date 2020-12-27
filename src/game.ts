@@ -15,7 +15,7 @@ export class Game {
     private _swim: boolean = false;
     private _numViewDirections:number= 300;
     private _directions:Array<BABYLON.Vector3> = [];
-   
+    private _meshInstanceCollection:Array<BABYLON.InstancedMesh> = [];
 
     constructor(canvasElement: string) {
         // Create canvas and engine
@@ -48,7 +48,8 @@ export class Game {
         // create the skybox
         let skybox = GameUtils.createSkybox("skybox", "./assets/texture/skybox/TropicalSunnyDay", this._scene);
         // creates the sandy ground
-        
+        this.computeBlocsPositionOnSphere();
+        this.createCubes(this._scene,this._directions);
 
         // Physics engine also works
         let gravity = new BABYLON.Vector3(0, -0.9, 0);
@@ -90,5 +91,55 @@ export class Game {
             this._directions[i] = new BABYLON.Vector3 (x, y, z);
         }
     }
+    
 
+    createCubes(scene:BABYLON.Scene, positions:Array<BABYLON.Vector3>){
+        const box = BABYLON.BoxBuilder.CreateBox('cube', { size: 3 }, scene)
+        
+        let colorData = new Float32Array(4 * positions.length);
+        let uvData = new Float32Array(2* positions.length)
+
+        for (var index = 0; index < positions.length; index++) {
+                colorData[index * 4] = Math.random();
+                colorData[index * 4 + 1] = Math.random();
+                colorData[index * 4 + 2] = Math.random();
+                colorData[index * 4 + 3] = 1.0;
+        }
+        console.log(box.getVerticesData(BABYLON.VertexBuffer.UVKind));
+
+        for(var index = 0;index<=positions.length;index++){
+            uvData[index*2] = 0;
+            uvData[index*2+1] = 16;
+        }
+        
+        var buffer = new BABYLON.VertexBuffer(scene.getEngine(), colorData, BABYLON.VertexBuffer.ColorKind, false, false, 4, true);
+        box.setVerticesBuffer(buffer);
+        var uvBuffer = new BABYLON.VertexBuffer(scene.getEngine(),uvData,BABYLON.VertexBuffer.UVKind,false,false,2,true);
+        box.setVerticesData(BABYLON.VertexBuffer.UVKind,uvData,false);
+        //box.updateVerticesData(BABYLON.VertexBuffer.UVKind,uvData,false,true);
+        console.log(box.getVerticesData(BABYLON.VertexBuffer.UVKind));
+
+        let mat =  GameUtils.createMinecraftBlockMaterial(this._scene);
+        mat.emissiveColor = BABYLON.Color3.White();
+        box.material = mat;
+
+
+        for(let dir=0;dir<positions.length;dir++){
+            let instance = box.createInstance("box" + dir);
+            instance.position = positions[dir].scale(40);
+            instance.alwaysSelectAsActiveMesh = true;
+            instance.freezeWorldMatrix();
+            instance.actionManager = new BABYLON.ActionManager(scene);
+            instance.actionManager.registerAction(
+                new BABYLON.ExecuteCodeAction(
+                    BABYLON.ActionManager.OnPickTrigger, function(bjsevt) {
+                        console.log(bjsevt);
+                    }
+                )
+            )
+            this._meshInstanceCollection.push(instance);
+        }
+
+        //box.isVisible = false;
+    }
 }

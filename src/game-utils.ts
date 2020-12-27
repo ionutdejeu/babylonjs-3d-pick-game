@@ -36,6 +36,12 @@ export class GameUtils {
         return waterMaterial;
     }
 
+    public static createMinecraftBlockMaterial(scene:BABYLON.Scene){
+        let material = new BABYLON.StandardMaterial('minecraftMatrial',scene);
+        let texture = new BABYLON.Texture("./assets/texture/minecraft_blocks.png", scene);
+        material.diffuseTexture = texture;
+        return material;
+    }   
     /**
      * Creates a Gui Texture
      */
