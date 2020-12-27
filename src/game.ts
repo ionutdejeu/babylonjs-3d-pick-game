@@ -1,6 +1,7 @@
 import { GameUtils } from './game-utils';
-import * as BABYLON from 'babylonjs';
-import * as GUI from 'babylonjs-gui';
+import * as BABYLON from '@babylonjs/core';
+import * as GUI from '@babylonjs/gui';
+import '@babylonjs/inspector';
 
 export class Game {
 
@@ -28,6 +29,17 @@ export class Game {
     createScene(): void {
         // create a basic BJS Scene object
         this._scene = new BABYLON.Scene(this._engine);
+
+        // show the inspector when pressing shift + alt + I
+        this._scene.onKeyboardObservable.add(({ event }) => {
+            if (event.ctrlKey && event.shiftKey && event.code === 'KeyI') {
+                if (this._scene.debugLayer.isVisible()) {
+                    this._scene.debugLayer.hide()
+                } else {
+                    this._scene.debugLayer.show()
+                }
+            }
+        })
         // create a FreeCamera, and set its position to (x:0, y:5, z:-10)
         this._camera = new BABYLON.ArcRotateCamera("Camera", 3 * Math.PI / 2, Math.PI / 4, 30, BABYLON.Vector3.Zero(), this._scene);
         this._camera.attachControl(this._canvas, true);

@@ -1,6 +1,6 @@
-import * as BABYLON from 'babylonjs';
-import * as MATERIAL from 'babylonjs-materials';
-import * as GUI from 'babylonjs-gui';
+import * as BABYLON from '@babylonjs/core';
+import * as MATERIAL from '@babylonjs/materials';
+import * as GUI from '@babylonjs/gui';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 

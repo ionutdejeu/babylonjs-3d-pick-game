@@ -11,6 +11,9 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@babylonjs/core": "^4.2.0",
+    "@babylonjs/inspector": "^4.2.0",
+    "@babylonjs/loaders": "^4.2.0",
     "@types/es6-shim": "^0.31.39",
     "clean-webpack-plugin": "^3.0.0",
     "copy-webpack-plugin": "^5.1.1",
@@ -25,10 +28,11 @@
     "webpack-dev-server": "^3.10.3"
   },
   "dependencies": {
-    "babylonjs": "^4.1.0",
-    "babylonjs-gui": "^4.1.0",
-    "babylonjs-loaders": "^4.1.0",
-    "babylonjs-materials": "^4.1.0",
+    "@babylonjs/gui": "^4.2.0",
+    "@babylonjs/materials": "^4.2.0",
+    "@babylonjs/core": "^4.2.0",
+    "@babylonjs/inspector": "^4.2.0",
+    "@babylonjs/loaders": "^4.2.0",
     "cannon": "^0.6.2",
     "earcut": "^2.2.2",
     "lodash": "^4.17.15",
