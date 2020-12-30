@@ -36,12 +36,80 @@ export class GameUtils {
         return waterMaterial;
     }
 
+
+    public static getBoxDynamicTexture(scene:BABYLON.Scene,val:number){
+        //Set width an height for plane
+        var planeWidth = 6;
+        var planeHeight = 6;
+        var DTWidth = planeWidth * 60;
+        var DTHeight = planeHeight * 60;
+
+        let boxmat = new BABYLON.StandardMaterial("boxmat"+String(val), scene);
+        let labelDT = new BABYLON.DynamicTexture("dt",{width:DTWidth, height:DTHeight}, scene, true);
+        var ctx = labelDT.getContext();
+        var size = 12; //any value will work
+        ctx.font = size + "px Verdana";
+        var textWidth = ctx.measureText(String(val)).width;
+        
+        //Calculate ratio of text width to size of font used
+        var ratio = textWidth/size;
+        
+        //set font to be actually used to write text on dynamic texture
+        var font_size = Math.floor(DTWidth / (ratio * 1)); //size of multiplier (1) can be adjusted, increase for smaller text
+        var font = font_size + "px Verdana";
+
+        labelDT.drawText(String(val), 10, 340, font, "white", "transparent");
+        boxmat.emissiveTexture = labelDT;
+        let c = new BABYLON.Color3();
+        c.r = Math.random();
+        c.g = Math.random();
+        c.b = Math.random();
+        boxmat.disableLighting = true;
+        boxmat.emissiveColor = c;
+        return boxmat;
+
+    }
+
+    public static getBoxDynamicTextureWithColor(scene:BABYLON.Scene,val:number,color:BABYLON.Color3){
+        //Set width an height for plane
+        var planeWidth = 6;
+        var planeHeight = 6;
+        var DTWidth = planeWidth * 60;
+        var DTHeight = planeHeight * 60;
+
+        let boxmat = new BABYLON.StandardMaterial("boxmat"+String(val), scene);
+        let labelDT = new BABYLON.DynamicTexture("dt",{width:DTWidth, height:DTHeight}, scene, true);
+        var ctx = labelDT.getContext();
+        var size = 12; //any value will work
+        ctx.font = size + "px Verdana";
+        var textWidth = ctx.measureText(String(val)).width;
+        
+        //Calculate ratio of text width to size of font used
+        var ratio = textWidth/size;
+        
+        //set font to be actually used to write text on dynamic texture
+        var font_size = Math.floor(DTWidth / (ratio * 1)); //size of multiplier (1) can be adjusted, increase for smaller text
+        var font = font_size + "px Verdana";
+
+        labelDT.drawText(String(val), 10, 340, font, "white", "transparent");
+        boxmat.emissiveTexture = labelDT;
+         
+        boxmat.disableLighting = true;
+        boxmat.emissiveColor = color;
+        return boxmat;
+
+    }
+
     public static createMinecraftBlockMaterial(scene:BABYLON.Scene){
         let material = new BABYLON.StandardMaterial('minecraftMatrial',scene);
-        let texture = new BABYLON.Texture("./assets/texture/minecraft_blocks.png", scene);
+        let texture = new BABYLON.Texture("./assets/texture/minecraft_blocks.png", scene,undefined,undefined,BABYLON.Texture.NEAREST_SAMPLINGMODE);
         material.diffuseTexture = texture;
+        material.disableLighting = false;
+        
         return material;
-    }   
+    }
+
+    
     /**
      * Creates a Gui Texture
      */

@@ -1,6 +1,8 @@
 import { GameUtils } from './game-utils';
 import * as BABYLON from '@babylonjs/core';
 import * as GUI from '@babylonjs/gui';
+import {GameEvent,GameEvents} from './game_events'
+import {GameCubeMatch} from './matching';
 import '@babylonjs/inspector';
 
 export class Game {
@@ -15,8 +17,8 @@ export class Game {
     private _swim: boolean = false;
     private _numViewDirections:number= 300;
     private _directions:Array<BABYLON.Vector3> = [];
-    private _meshInstanceCollection:Array<BABYLON.InstancedMesh> = [];
-
+    private _meshInstanceCollection:Array<BABYLON.Mesh> = [];
+    private _matchingLogic:GameCubeMatch;
     constructor(canvasElement: string) {
         // Create canvas and engine
         this._canvas = <HTMLCanvasElement>document.getElementById(canvasElement);
@@ -50,7 +52,7 @@ export class Game {
         // creates the sandy ground
         this.computeBlocsPositionOnSphere();
         this.createCubes(this._scene,this._directions);
-
+        this._matchingLogic = new GameCubeMatch(this._scene);
         // Physics engine also works
         let gravity = new BABYLON.Vector3(0, -0.9, 0);
         this._scene.enablePhysics(gravity, new BABYLON.CannonJSPlugin());
@@ -94,52 +96,91 @@ export class Game {
     
 
     createCubes(scene:BABYLON.Scene, positions:Array<BABYLON.Vector3>){
-        const box = BABYLON.BoxBuilder.CreateBox('cube', { size: 3 }, scene)
-        
-        let colorData = new Float32Array(4 * positions.length);
-        let uvData = new Float32Array(2* positions.length)
-
-        for (var index = 0; index < positions.length; index++) {
-                colorData[index * 4] = Math.random();
-                colorData[index * 4 + 1] = Math.random();
-                colorData[index * 4 + 2] = Math.random();
-                colorData[index * 4 + 3] = 1.0;
-        }
-        console.log(box.getVerticesData(BABYLON.VertexBuffer.UVKind));
-
-        for(var index = 0;index<=positions.length;index++){
-            uvData[index*2] = 0;
-            uvData[index*2+1] = 16;
-        }
-        
-        var buffer = new BABYLON.VertexBuffer(scene.getEngine(), colorData, BABYLON.VertexBuffer.ColorKind, false, false, 4, true);
-        box.setVerticesBuffer(buffer);
-        var uvBuffer = new BABYLON.VertexBuffer(scene.getEngine(),uvData,BABYLON.VertexBuffer.UVKind,false,false,2,true);
-        box.setVerticesData(BABYLON.VertexBuffer.UVKind,uvData,false);
-        //box.updateVerticesData(BABYLON.VertexBuffer.UVKind,uvData,false,true);
-        console.log(box.getVerticesData(BABYLON.VertexBuffer.UVKind));
-
+        const box = BABYLON.BoxBuilder.CreateBox('cube',{ size: 3 }, scene)
+       
         let mat =  GameUtils.createMinecraftBlockMaterial(this._scene);
-        mat.emissiveColor = BABYLON.Color3.White();
         box.material = mat;
+        
 
+        let positionsCopy = Object.assign([], positions);
+        for(let dir=0;dir<positionsCopy.length;dir++){
+            
+            let c = new BABYLON.Color3();
+            c.r = Math.random();
+            c.g = Math.random();
+            c.b = Math.random();
 
-        for(let dir=0;dir<positions.length;dir++){
-            let instance = box.createInstance("box" + dir);
-            instance.position = positions[dir].scale(40);
-            instance.alwaysSelectAsActiveMesh = true;
-            instance.freezeWorldMatrix();
-            instance.actionManager = new BABYLON.ActionManager(scene);
-            instance.actionManager.registerAction(
-                new BABYLON.ExecuteCodeAction(
-                    BABYLON.ActionManager.OnPickTrigger, function(bjsevt) {
-                        console.log(bjsevt);
-                    }
+            for (let i = 0; i < 2; i++) {
+                const randIndex = parseInt(String(Math.random()*positionsCopy.length));
+                let instance = BABYLON.BoxBuilder.CreateBox('cube'+String(dir)+String(i),{ size: 3 }, scene)
+                instance.position = positionsCopy[randIndex].scale(40);
+                instance.alwaysSelectAsActiveMesh = true;
+
+                instance.freezeWorldMatrix();
+                instance.actionManager = new BABYLON.ActionManager(scene);
+                instance.material = GameUtils.getBoxDynamicTextureWithColor(scene,dir,c);
+                instance.metadata = {value:dir};
+                
+                instance.actionManager.registerAction(
+                    new BABYLON.ExecuteCodeAction(
+                        BABYLON.ActionManager.OnPickTrigger, function(bjsevt) {
+                            console.log(bjsevt);
+                            let m = bjsevt.source as BABYLON.Mesh;
+                            GameEvents.SelectionObservable.notifyObservers(new GameEvent(this._scene,this._camera,m));
+                        }
+                    )
                 )
-            )
-            this._meshInstanceCollection.push(instance);
+                this._meshInstanceCollection.push(instance);
+                positionsCopy.splice(randIndex, 1); 
+            }
+            
+        }
+    }
+
+    draIndeces(scene:BABYLON.Scene,positionData:Float32Array,uvData:Array<Number>){
+        for (let i = 0; i < positionData.length; i+=3) {
+            const verPos = new BABYLON.Vector3(positionData[i],positionData[i+1],positionData[i+2]).scale(1+i*0.02);
+            let lbl = parseInt((i/9).toString()) + ":"+ uvData[i/3] + ','+uvData[i/3+1];
+            console.log(lbl);
+            this.makeLabel(scene,lbl,"black",verPos);
         }
 
-        //box.isVisible = false;
     }
+    makeLabel(scene:BABYLON.Scene,text:string, color:string,position:BABYLON.Vector3) {
+        //Set font type
+        var font_type = "Arial";
+        
+        //Set width an height for plane
+        var planeWidth = 0.5;
+        var planeHeight = 0.5;
+        var DTWidth = planeWidth * 60;
+        var DTHeight = planeHeight * 60;
+        var dynamicTexture = new BABYLON.DynamicTexture("DynamicTexture",{width:DTWidth, height:DTHeight}, scene, true);
+            //Check width of text for given font type at any size of font
+        var ctx = dynamicTexture.getContext();
+        var size = 12; //any value will work
+        ctx.font = size + "px " + font_type;
+        var textWidth = ctx.measureText(text).width;
+        
+        //Calculate ratio of text width to size of font used
+        var ratio = textWidth/size;
+        
+        //set font to be actually used to write text on dynamic texture
+        var font_size = Math.floor(DTWidth / (ratio * 1)); //size of multiplier (1) can be adjusted, increase for smaller text
+        var font = font_size + "px " + font_type;
+        
+        //Draw text
+        dynamicTexture.drawText(text, null, null, font, "#000000", "#ffffff", true);
+
+    	var plane = BABYLON.MeshBuilder.CreatePlane("TextPlane", {width:planeWidth, height:planeHeight}, scene);
+    	let mat = new BABYLON.StandardMaterial("TextPlaneMaterial", scene);
+    	mat.backFaceCulling = false;
+    	//mat.diffuseColor = new BABYLON.Color3(0, 0, 0);
+        mat.diffuseTexture = dynamicTexture;
+        plane.position = position;
+        plane.material = mat;
+        plane.showBoundingBox = true;
+
+    	return plane;
+     }
 }
