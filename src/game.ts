@@ -3,7 +3,11 @@ import * as BABYLON from '@babylonjs/core';
 import * as GUI from '@babylonjs/gui';
 import {GameEvent,GameEvents} from './game_events'
 import {GameCubeMatch} from './matching';
+import {ManiMenu} from './main_menu';
+import {GameSound} from './sound';
+
 import '@babylonjs/inspector';
+
 
 export class Game {
 
@@ -15,10 +19,12 @@ export class Game {
     private _sharkMesh: BABYLON.AbstractMesh;
     private _sharkAnimationTime = 0;
     private _swim: boolean = false;
-    private _numViewDirections:number= 300;
+    private _numViewDirections:number= 20;
     private _directions:Array<BABYLON.Vector3> = [];
     private _meshInstanceCollection:Array<BABYLON.Mesh> = [];
     private _matchingLogic:GameCubeMatch;
+    private _menu:ManiMenu;
+    private _sound:GameSound;
     constructor(canvasElement: string) {
         // Create canvas and engine
         this._canvas = <HTMLCanvasElement>document.getElementById(canvasElement);
@@ -52,13 +58,37 @@ export class Game {
         // creates the sandy ground
         this.computeBlocsPositionOnSphere();
         this.createCubes(this._scene,this._directions);
-        this._matchingLogic = new GameCubeMatch(this._scene);
-        // Physics engine also works
-        let gravity = new BABYLON.Vector3(0, -0.9, 0);
-        this._scene.enablePhysics(gravity, new BABYLON.CannonJSPlugin());
+        this._matchingLogic = new GameCubeMatch(this._scene,this._numViewDirections/2);
+        this._menu = new ManiMenu(this._scene);
+        this._sound = new GameSound(this._scene);
+        //let gravity = new BABYLON.Vector3(0, -0.9, 0);
+        //this._scene.enablePhysics(gravity, new BABYLON.CannonJSPlugin());
+        GameEvents.OnGameRestartObservable.add((evt:GameEvent,s:BABYLON.EventState)=>{
+            this.restartGame();
+        });
+        GameEvents.OnLevelCompleted.add((evt:GameEvent,s:BABYLON.EventState)=>{
+            this.advanceToNextLevel(this._numViewDirections/2+4);
+        });
     }
 
+    restartGame(){
+        for (let i = 0; i < this._meshInstanceCollection.length; i++) {
+            const m = this._meshInstanceCollection[i];
+            m.dispose();
+        }
+        this.createCubes(this._scene,this._directions);
 
+    }
+
+    advanceToNextLevel(numberOfPairs:number){
+        this._numViewDirections = 2*numberOfPairs;
+        for (let i = 0; i < this._meshInstanceCollection.length; i++) {
+            const m = this._meshInstanceCollection[i];
+            m.dispose();
+        }
+        this.computeBlocsPositionOnSphere();
+        this.createCubes(this._scene,this._directions);
+    }
     /**
      * Starts the animation loop.
      */
@@ -96,14 +126,10 @@ export class Game {
     
 
     createCubes(scene:BABYLON.Scene, positions:Array<BABYLON.Vector3>){
-        const box = BABYLON.BoxBuilder.CreateBox('cube',{ size: 3 }, scene)
        
-        let mat =  GameUtils.createMinecraftBlockMaterial(this._scene);
-        box.material = mat;
-        
-
+        let pairs = this._numViewDirections/2;
         let positionsCopy = Object.assign([], positions);
-        for(let dir=0;dir<positionsCopy.length;dir++){
+        for(let p=pairs;p>0;p-=1){
             
             let c = new BABYLON.Color3();
             c.r = Math.random();
@@ -112,21 +138,22 @@ export class Game {
 
             for (let i = 0; i < 2; i++) {
                 const randIndex = parseInt(String(Math.random()*positionsCopy.length));
-                let instance = BABYLON.BoxBuilder.CreateBox('cube'+String(dir)+String(i),{ size: 3 }, scene)
-                instance.position = positionsCopy[randIndex].scale(40);
+                let instance = BABYLON.BoxBuilder.CreateBox('cube'+String(p)+String(i),{ size: 3 }, scene)
+                console.log(randIndex);
+                instance.position = positionsCopy[randIndex].scale(pairs);
                 instance.alwaysSelectAsActiveMesh = true;
 
                 instance.freezeWorldMatrix();
                 instance.actionManager = new BABYLON.ActionManager(scene);
-                instance.material = GameUtils.getBoxDynamicTextureWithColor(scene,dir,c);
-                instance.metadata = {value:dir};
+                instance.material = GameUtils.getBoxDynamicTextureWithColor(scene,p,c);
+                instance.metadata = {value:p};
                 
                 instance.actionManager.registerAction(
                     new BABYLON.ExecuteCodeAction(
                         BABYLON.ActionManager.OnPickTrigger, function(bjsevt) {
                             console.log(bjsevt);
                             let m = bjsevt.source as BABYLON.Mesh;
-                            GameEvents.SelectionObservable.notifyObservers(new GameEvent(this._scene,this._camera,m));
+                            GameEvents.OnMeshSelectedObservable.notifyObservers(new GameEvent(this._scene,this._camera,m));
                         }
                     )
                 )
