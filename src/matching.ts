@@ -48,10 +48,13 @@ export class GameCubeMatch {
             this.selectedMeshes.push(evt.source);
         }
     }
+    updateLevelWinCondition(nrOfTotalPairs:number){
+        this.nrOfTotalPairs = nrOfTotalPairs;
+        this.nrOfMatchedPairs = 0;
+    }
     checkWin(g:GameEvent){
 
         if(this.nrOfMatchedPairs>=this.nrOfTotalPairs){
-            console.log('win');
             GameEvents.OnLevelCompleted.notifyObservers(g);
         }
         else{

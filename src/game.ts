@@ -81,6 +81,7 @@ export class Game {
     }
 
     advanceToNextLevel(numberOfPairs:number){
+        this._matchingLogic.updateLevelWinCondition(numberOfPairs);
         this._numViewDirections = 2*numberOfPairs;
         for (let i = 0; i < this._meshInstanceCollection.length; i++) {
             const m = this._meshInstanceCollection[i];

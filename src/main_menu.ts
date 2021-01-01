@@ -82,7 +82,7 @@ export class ManiMenu {
             this.restartGame();
         });
         this.showMenuButton.onPointerDownObservable.add((evt:GUI.Vector2WithInfo,evtData:BABYLON.EventState)=>{
-            this.toggleMenu();
+            this.showMenu();
         });
     }
     toggleSound(){
